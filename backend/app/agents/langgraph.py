@@ -44,7 +44,7 @@ async def get_mcp_tools():
 async def init_agent(name: str, system_prompt: str, tools: list = None):
     agent = create_agent(
         name=name,
-        model=llm.bind_tools(tools),
+        model=llm,
         tools=tools,
         system_prompt=system_prompt
     )
@@ -91,27 +91,19 @@ class AgentState(TypedDict):
 async def main():
     mcp_tools = await get_mcp_tools()
 
-    # attraction_agent = await init_agent("attraction_agent", ATTRACTION_AGENT_PROMPT, mcp_tools)
+    attraction_agent = await init_agent("attraction_agent", ATTRACTION_AGENT_PROMPT, mcp_tools)
     hotel_agent = await init_agent("hotel_agent", HOTEL_AGENT_PROMPT, mcp_tools)
-    # weather_agent = await init_agent("weather_agent", WEATHER_AGENT_PROMPT, mcp_tools)
+    weather_agent = await init_agent("weather_agent", WEATHER_AGENT_PROMPT, mcp_tools)
 
     builder = StateGraph(AgentState)
 
+    builder.add_node("attraction_query", attraction_query(attraction_agent))
     builder.add_node("hotel_query", hotel_query(hotel_agent))
-    builder.set_entry_point('hotel_query')
-    builder.add_edge('hotel_query', END)
-
-    # builder.add_node("attraction_query", attraction_query(attraction_agent))
-    # builder.set_entry_point('attraction_query')
-    # builder.add_edge('attraction_query', END)
-
-    # builder.add_node("attraction_query", attraction_query(attraction_agent))
-    # builder.add_node("hotel_query", hotel_query(hotel_agent))
-    # builder.add_node("weather_query", weather_query(weather_agent))
-    # builder.set_entry_point('attraction_query')
-    # builder.add_edge('attraction_query', 'hotel_query')
-    # builder.add_edge('hotel_query', 'weather_query')
-    # builder.add_edge('weather_query', END)
+    builder.add_node("weather_query", weather_query(weather_agent))
+    builder.set_entry_point('attraction_query')
+    builder.add_edge('attraction_query', 'hotel_query')
+    builder.add_edge('hotel_query', 'weather_query')
+    builder.add_edge('weather_query', END)
 
     graph = builder.compile()
     print(graph.get_graph().draw_mermaid())
