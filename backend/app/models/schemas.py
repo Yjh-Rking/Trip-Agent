@@ -2,6 +2,33 @@ from typing import List, Optional, Union
 from pydantic import BaseModel, Field, field_validator
 from datetime import date
 
+# ============ 请求模型 ============
+
+class TripRequest(BaseModel):
+    """旅行规划请求"""
+    city: str = Field(..., description="目的地城市", example="北京")
+    start_date: str = Field(..., description="开始日期 YYYY-MM-DD", example="2025-06-01")
+    end_date: str = Field(..., description="结束日期 YYYY-MM-DD", example="2025-06-03")
+    travel_days: int = Field(..., description="旅行天数", ge=1, le=30, example=3)
+    transportation: str = Field(..., description="交通方式", example="公共交通")
+    accommodation: str = Field(..., description="住宿偏好", example="经济型酒店")
+    preferences: List[str] = Field(default=[], description="旅行偏好标签", example=["历史文化", "美食"])
+    free_text_input: Optional[str] = Field(default="", description="额外要求", example="希望多安排一些博物馆")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "city": "北京",
+                "start_date": "2025-06-01",
+                "end_date": "2025-06-03",
+                "travel_days": 3,
+                "transportation": "公共交通",
+                "accommodation": "经济型酒店",
+                "preferences": ["历史文化", "美食"],
+                "free_text_input": "希望多安排一些博物馆"
+            }
+        }
+
 class Location(BaseModel):
     """地理位置"""
     longitude: float = Field(..., description="经度")
