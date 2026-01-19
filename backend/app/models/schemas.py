@@ -7,8 +7,8 @@ from datetime import date
 class TripRequest(BaseModel):
     """旅行规划请求"""
     city: str = Field(..., description="目的地城市", example="北京")
-    start_date: str = Field(..., description="开始日期 YYYY-MM-DD", example="2025-06-01")
-    end_date: str = Field(..., description="结束日期 YYYY-MM-DD", example="2025-06-03")
+    start_date: str = Field(..., description="开始日期 YYYY-MM-DD", example="2026-01-19")
+    end_date: str = Field(..., description="结束日期 YYYY-MM-DD", example="2026-01-22")
     travel_days: int = Field(..., description="旅行天数", ge=1, le=30, example=3)
     transportation: str = Field(..., description="交通方式", example="公共交通")
     accommodation: str = Field(..., description="住宿偏好", example="经济型酒店")
@@ -19,8 +19,8 @@ class TripRequest(BaseModel):
         json_schema_extra = {
             "example": {
                 "city": "北京",
-                "start_date": "2025-06-01",
-                "end_date": "2025-06-03",
+                "start_date": "2026-01-19",
+                "end_date": "2026-01-22",
                 "travel_days": 3,
                 "transportation": "公共交通",
                 "accommodation": "经济型酒店",
