@@ -1,9 +1,10 @@
 import os
+import json
 import asyncio
 from langchain_openai import ChatOpenAI
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.agents import create_agent
-from app.models.schemas import TripRequest
+from app.models.schemas import TripRequest, TripPlan
 from langgraph.graph import END, StateGraph
 from langchain_core.messages import AnyMessage, AIMessage
 from typing import Annotated, Optional, TypedDict
@@ -137,6 +138,47 @@ def planner_query(agent) -> callable:
 
     return call_agent
 
+def _parse_response(response: str, request: TripRequest) -> TripPlan:
+    """
+    解析Agent响应
+    
+    Args:
+        response: Agent响应文本
+        request: 原始请求
+        
+    Returns:
+        旅行计划
+    """
+    try:
+        # 尝试从响应中提取JSON
+        # 查找JSON代码块
+        if "```json" in response:
+            json_start = response.find("```json") + 7
+            json_end = response.find("```", json_start)
+            json_str = response[json_start:json_end].strip()
+        elif "```" in response:
+            json_start = response.find("```") + 3
+            json_end = response.find("```", json_start)
+            json_str = response[json_start:json_end].strip()
+        elif "{" in response and "}" in response:
+            # 直接查找JSON对象
+            json_start = response.find("{")
+            json_end = response.rfind("}") + 1
+            json_str = response[json_start:json_end]
+        else:
+            raise ValueError("响应中未找到JSON数据")
+        
+        # 解析JSON
+        data = json.loads(json_str)
+        
+        # 转换为TripPlan对象
+        trip_plan = TripPlan(**data)
+        
+        return trip_plan
+        
+    except Exception as e:
+        print(f"⚠️  解析响应失败: {str(e)}")
+
 class AgentState(TypedDict):
     attraction: Optional[str]
     hotel: Optional[str]
@@ -186,8 +228,9 @@ async def main():
     }
     
     final_state = await graph.ainvoke(initial_state)
-    print("Final Planner Output:")
-    print(final_state.get("planner"))
+    print(final_state["planner"])
+    trip_plan = _parse_response(final_state["planner"], trip_request)
+    print("tripplan:", trip_plan)
 
 if __name__ == "__main__":
     asyncio.run(main())
