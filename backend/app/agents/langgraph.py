@@ -18,7 +18,7 @@ settings = get_settings()
 llm = ChatOpenAI(
     model=settings.LLM_MODEL_ID,
     api_key=settings.LLM_API_KEY,
-    base_url=settings.LLM_BASE_URL  ,
+    base_url=settings.LLM_BASE_URL,
     temperature=0.0
 )
 
@@ -171,8 +171,7 @@ def _parse_response(response: str) -> TripPlan:
             json_str = response[json_start:json_end]
         else:
             raise ValueError("响应中未找到JSON数据")
-        print("📝 提取到的JSON数据:")
-        print(json_str)
+
         # 解析JSON
         data = json.loads(json_str)
         
