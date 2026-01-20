@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 .Python
+.pytest_cache/
 
 # IDE
 .vscode/
@@ -9,6 +10,7 @@ CLAUDE.md
 
 # backend
 backend/.env
+
 
 # front
 frontend/node_modules
