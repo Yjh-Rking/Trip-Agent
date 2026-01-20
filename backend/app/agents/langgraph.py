@@ -1,5 +1,3 @@
-import os
-import json
 import asyncio
 from langchain_openai import ChatOpenAI
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -8,7 +6,6 @@ from app.models.schemas import TripRequest, TripPlan
 from langgraph.graph import END, StateGraph
 from langchain_core.messages import AnyMessage, AIMessage
 from typing import Annotated, Optional, TypedDict
-import operator
 from .prompt import ATTRACTION_AGENT_PROMPT, WEATHER_AGENT_PROMPT, HOTEL_AGENT_PROMPT, PLANNER_AGENT_PROMPT
 from app.config import get_settings
 
@@ -46,12 +43,13 @@ async def get_mcp_tools():
     print(f"Loaded {len(tools)} tools from Amap MCP server.")
     return tools
 
-async def init_agent(name: str, system_prompt: str, tools: list = None):
+async def init_agent(name: str, system_prompt: str, tools: list = None, response_format: Optional[str] = None):
     agent = create_agent(
         name=name,
         model=llm,
+        system_prompt=system_prompt,
         tools=tools,
-        system_prompt=system_prompt
+        response_format=response_format
     )
     return agent
 
@@ -132,62 +130,15 @@ def planner_query(agent) -> callable:
             query += f"\n**额外要求:** {request.free_text_input}"
 
         response = await agent.ainvoke({"messages": [("user", query)]})
-        if isinstance(response, dict) and "messages" in response:   
-            ai_messages = [msg for msg in response["messages"] if isinstance(msg, AIMessage)]
-            output_text = "\n".join(msg.content for msg in ai_messages)
-        else:
-            output_text = str(response)
-
-        return {"planner": output_text}
+        return {"planner": response["structured_response"]}
 
     return call_agent
-
-def _parse_response(response: str) -> TripPlan:
-    """
-    解析Agent响应
-    
-    Args:
-        response: Agent响应文本
-        request: 原始请求
-        
-    Returns:
-        旅行计划
-    """
-    try:
-        # 尝试从响应中提取JSON
-        # 查找JSON代码块
-        if "```json" in response:
-            json_start = response.find("```json") + 7
-            json_end = response.find("```", json_start)
-            json_str = response[json_start:json_end].strip()
-        elif "```" in response:
-            json_start = response.find("```") + 3
-            json_end = response.find("```", json_start)
-            json_str = response[json_start:json_end].strip()
-        elif "{" in response and "}" in response:
-            # 直接查找JSON对象
-            json_start = response.find("{")
-            json_end = response.rfind("}") + 1
-            json_str = response[json_start:json_end]
-        else:
-            raise ValueError("响应中未找到JSON数据")
-
-        # 解析JSON
-        data = json.loads(json_str)
-        
-        # 转换为TripPlan对象
-        trip_plan = TripPlan(**data)
-        
-        return trip_plan
-        
-    except Exception as e:
-        print(f"⚠️  解析响应失败: {str(e)}")
 
 class AgentState(TypedDict):
     attraction: Optional[str]
     hotel: Optional[str]
     weather: Optional[str]
-    planner: Optional[str]
+    planner: Optional[TripPlan]
     request: TripRequest
 
 async def agent_plan_trip(trip_request: TripRequest) -> TripPlan:
@@ -196,7 +147,7 @@ async def agent_plan_trip(trip_request: TripRequest) -> TripPlan:
     attraction_agent = await init_agent("attraction_agent", ATTRACTION_AGENT_PROMPT, mcp_tools)
     hotel_agent = await init_agent("hotel_agent", HOTEL_AGENT_PROMPT, mcp_tools)
     weather_agent = await init_agent("weather_agent", WEATHER_AGENT_PROMPT, mcp_tools)
-    planner_agent = await init_agent("planner_agent", PLANNER_AGENT_PROMPT)
+    planner_agent = await init_agent("planner_agent", PLANNER_AGENT_PROMPT, response_format=TripPlan)
 
     builder = StateGraph(AgentState)
 
@@ -220,8 +171,20 @@ async def agent_plan_trip(trip_request: TripRequest) -> TripPlan:
     }
     
     final_state = await graph.ainvoke(initial_state)
-    trip_plan = _parse_response(final_state["planner"])
-    return trip_plan
+    return final_state["planner"]
 
 if __name__ == "__main__":
-    asyncio.run(agent_plan_trip())
+        # 生成一个TripRequest实例
+    trip_request = TripRequest(
+        city="北京",
+        start_date="2026-01-19",
+        end_date="2026-01-22",
+        travel_days=3,
+        transportation="公共交通",
+        accommodation="经济型酒店",
+        preferences=["历史文化", "美食"],
+        free_text_input="希望多安排一些博物馆"
+    )
+
+
+    asyncio.run(agent_plan_trip(trip_request))
