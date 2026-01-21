@@ -13,6 +13,17 @@ NC='\033[0m'
 echo "🚀 Travel-Agent 启动脚本"
 echo ""
 
+# 检查 Python 版本
+REQUIRED_VERSION="3.11"
+PYTHON_VERSION=$(python3 --version 2>&1 | grep -oP '(?<=Python )\d+\.\d+')
+
+if [ "$PYTHON_VERSION" != "$REQUIRED_VERSION" ]; then
+  echo -e "${RED}错误: 需要 Python $REQUIRED_VERSION，当前版本为 $PYTHON_VERSION${NC}"
+  echo "请使用 pyenv 或 conda 管理 Python 版本: pyenv install $REQUIRED_VERSION && pyenv local $REQUIRED_VERSION"
+  exit 1
+fi
+echo -e "${GREEN}✓ Python 版本检查通过 ($PYTHON_VERSION)${NC}"
+
 # 解析参数
 AMAP_API_KEY="${1:-}"
 LLM_MODEL_ID="${2:-}"
@@ -36,6 +47,13 @@ if [ -z "$AMAP_API_KEY" ] || [ -z "$LLM_MODEL_ID" ] || [ -z "$LLM_API_KEY" ] || 
 fi
 
 echo ""
+echo "✓ 已获取配置参数"
+echo "  - 高德地图 API Key: ${AMAP_API_KEY:0:10}..."
+echo "  - LLM Model ID: $LLM_MODEL_ID"
+echo "  - LLM API Key: ${LLM_API_KEY:0:10}..."
+echo "  - LLM Base URL: $LLM_BASE_URL"
+
+echo ""
 
 # 脚本目录
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -49,13 +67,19 @@ cp backend/.env.example backend/.env
 sed -i "s/AMAP_API_KEY=\"YOU-AMAP-API-KEY-HERE\"/AMAP_API_KEY=\"$AMAP_API_KEY\"/" backend/.env
 sed -i "s/LLM_MODEL_ID=\"YOU_OPENAI_MODEL_ID\"/LLM_MODEL_ID=\"$LLM_MODEL_ID\"/" backend/.env
 sed -i "s/LLM_API_KEY=\"YOU_OPENAI_API_KEY\"/LLM_API_KEY=\"$LLM_API_KEY\"/" backend/.env
-sed -i "s|L_LM_BASE_URL=\"YOU_OPENAI_BASE_URL\"|LLM_BASE_URL=\"$LLM_BASE_URL\"|" backend/.env
+sed -i "s|LLM_BASE_URL=\"YOU_OPENAI_BASE_URL\"|LLM_BASE_URL=\"$LLM_BASE_URL\"|" backend/.env
 echo -e "${GREEN}✓ 配置文件已生成${NC}"
 
 # 日志文件
 BACKEND_LOG="$SCRIPT_DIR/logs/backend.log"
 FRONTEND_LOG="$SCRIPT_DIR/logs/frontend.log"
 mkdir -p "$SCRIPT_DIR/logs"
+
+# 添加日志时间分隔符
+echo "" >> "$BACKEND_LOG"
+echo "======== $(date '+%Y-%m-%d %H:%M:%S') ========" >> "$BACKEND_LOG"
+echo "" >> "$FRONTEND_LOG"
+echo "======== $(date '+%Y-%m-%d %H:%M:%S') ========" >> "$FRONTEND_LOG"
 
 # 安装后端依赖
 echo ""
@@ -67,7 +91,7 @@ echo -e "${GREEN}✓ 后端依赖安装完成${NC}"
 # 启动后端
 echo ""
 echo "🚀 启动后端服务..."
-uvicorn app.api.main:app --host 0.0.0.0 --port 8000 > "$BACKEND_LOG" 2>&1 &
+uvicorn app.api.main:app --host 0.0.0.0 --port 8000 >> "$BACKEND_LOG" 2>&1 &
 BACKEND_PID=$!
 echo -e "${GREEN}✓ 后端已启动 (PID: $BACKEND_PID)${NC}"
 echo "  日志: $BACKEND_LOG"
@@ -76,13 +100,13 @@ echo "  日志: $BACKEND_LOG"
 echo ""
 echo "📦 安装前端依赖..."
 cd "$SCRIPT_DIR/frontend"
-npm install 2>/dev/null || npm install
+npm install > /dev/null 2>&1 || npm install
 echo -e "${GREEN}✓ 前端依赖安装完成${NC}"
 
 # 启动前端
 echo ""
 echo "🚀 启动前端服务..."
-npm run dev > "$FRONTEND_LOG" 2>&1 &
+npm run dev >> "$FRONTEND_LOG" 2>&1 &
 FRONTEND_PID=$!
 echo -e "${GREEN}✓ 前端已启动 (PID: $FRONTEND_PID)${NC}"
 echo "  日志: $FRONTEND_LOG"

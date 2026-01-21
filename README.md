@@ -10,6 +10,13 @@
 | 后端 | FastAPI + LangGraph + 高德地图 MCP |
 | LLM | OpenAI 兼容 API |
 
+## 环境要求
+
+- **Python 3.11** (必需)
+- Node.js 18+
+- 高德地图 API Key
+- OpenAI 兼容的 LLM API
+
 ## 快速启动
 
 ### 一键启动（推荐）
