@@ -20,7 +20,7 @@
 cd backend
 pip install -r requirements.txt
 cp .env.example .env  
-# ！！编辑 .env 填入配置！！
+# !! 编辑 .env 填入配置 !!
 python -m app.api.main
 ```
 
@@ -108,13 +108,11 @@ POST /api/trip/plan
 ```env
 # 必填配置
 AMAP_MAPS_API_KEY=your_amap_api_key
-LLM_API_KEY=your_llm_api_key
-LLM_BASE_URL=https://api.openai.com/v1
-LLM_MODEL_ID=gpt-4o
+LLM_MODEL_ID=you_openai_model_id
+LLM_API_KEY=you_Openai_api_key
+LLM_BASE_URL=you_openai_base_url
 
 # 可选配置
-UNSPLASH_ACCESS_KEY=your_unsplash_key
-UNSPLASH_SECRET_KEY=your_unsplash_secret
 LOG_LEVEL=INFO
 ```
 

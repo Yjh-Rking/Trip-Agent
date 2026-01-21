@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
         error_msg = "配置错误:\n" + "\n".join(f"  - {e}" for e in errors)
         raise ValueError(error_msg)
     # 打印警告（可忽略）
-    if warnings and not settings.ignore_warnings:
+    if warnings:
         print("\n⚠️  配置警告:")
         for w in warnings:
             print(f"  - {w}")
